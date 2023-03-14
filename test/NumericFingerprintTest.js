@@ -15,7 +15,7 @@ describe('NumericFingerprint', function() {
         0x97, 0x8d, 0x4d, 0x5d, 0xa2, 0x8d, 0xc3, 0x40, 0x46, 0xae, 0x81, 0x44,
         0x02, 0xb5, 0xc0, 0xdb, 0xd9, 0x6f, 0xda, 0x90, 0x7b
     ];
-    var FINGERPRINT    = "300354477692869396892869876765458257569162576843440918079131";
+    var FINGERPRINT    = "098194662059693580801785814095969028954318816509279734058736";
 
     var alice = {
         identifier: '+14152222222',
@@ -25,12 +25,16 @@ describe('NumericFingerprint', function() {
         identifier: '+14153333333',
         key: new Uint8Array(BOB_IDENTITY).buffer
     };
+    var test = {
+        identifier: '+14153333333',
+        key: new Uint8Array([0x02, 0xb5, 0xc0, 0xdb, 0xd9, 0x6f, 0xda, 0x90, 0x7b]).buffer
+    };
 
     it('returns the correct fingerprint', function(done) {
-        var generator = new libsignal.FingerprintGenerator(5200);
-        generator.createFor(
-            alice.identifier, alice.key, bob.identifier, bob.key
+        var generator = new libsignal.FingerprintGenerator(1);
+        generator.createFor(alice.key, bob.key
         ).then(function(fingerprint) {
+            console.log(fingerprint.toString());
             assert.strictEqual(fingerprint, FINGERPRINT);
         }).then(done,done);
     });
@@ -38,12 +42,8 @@ describe('NumericFingerprint', function() {
     it ('alice and bob results match', function(done) {
         var generator = new libsignal.FingerprintGenerator(1024);
         Promise.all([
-            generator.createFor(
-                alice.identifier, alice.key, bob.identifier, bob.key
-            ),
-            generator.createFor(
-                bob.identifier, bob.key, alice.identifier, alice.key
-            )
+            generator.createFor(alice.key,  bob.key),
+            generator.createFor(bob.key, alice.key)
         ]).then(function(fingerprints) {
             assert.strictEqual(fingerprints[0], fingerprints[1]);
         }).then(done,done);
@@ -52,12 +52,8 @@ describe('NumericFingerprint', function() {
     it ('alice and !bob results mismatch', function(done) {
         var generator = new libsignal.FingerprintGenerator(1024);
         Promise.all([
-            generator.createFor(
-                alice.identifier, alice.key, '+15558675309', bob.key
-            ),
-            generator.createFor(
-                bob.identifier, bob.key, alice.identifier, alice.key
-            )
+            generator.createFor(alice.key, test.key),
+            generator.createFor(bob.key, test.key)
         ]).then(function(fingerprints) {
             assert.notStrictEqual(fingerprints[0], fingerprints[1]);
         }).then(done,done);
@@ -67,12 +63,8 @@ describe('NumericFingerprint', function() {
         var mitm   = libsignal.crypto.getRandomBytes(33);
         var generator = new libsignal.FingerprintGenerator(1024);
         Promise.all([
-            generator.createFor(
-                alice.identifier, alice.key, bob.identifier, mitm
-            ),
-            generator.createFor(
-                bob.identifier, bob.key, alice.identifier, alice.key
-            )
+            generator.createFor(alice.key,  mitm),
+            generator.createFor(bob.key,  alice.key)
         ]).then(function(fingerprints) {
             assert.notStrictEqual(fingerprints[0], fingerprints[1]);
         }).then(done,done);
